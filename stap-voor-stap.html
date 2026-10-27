@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stap voor Stap</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stap voor Stap">
+<meta name="theme-color" content="#1f3f8c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/style.css">
+</head>
+<body>
+<main id="app" tabindex="-1"></main>
+<script src="woorden.js"></script>
+<script src="lezen.js"></script>
+<!-- App code, as classic scripts sharing globals. Order matters: home.js runs the app, so it comes last. -->
+<script src="app/core.js"></script>
+<script src="app/fx.js"></script>
+<script src="app/tiles.js"></script>
+<script src="app/vocab.js"></script>
+<script src="app/placement.js"></script>
+<script src="app/pronounce.js"></script>
+<script src="app/grammar.js"></script>
+<script src="app/read.js"></script>
+<script src="app/writing.js"></script>
+<script src="app/home.js"></script>
+</body>
+</html>

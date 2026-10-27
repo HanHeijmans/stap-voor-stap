@@ -155,23 +155,28 @@ function wDone(ok,note,typed){
   wc.done=1;const {w}=wc,k=w[3],c=S.w[k];
   Object.assign(wc,{ok,note,typed,b0:c?c.b:0,snap:c?{...c}:null,missBefore:ws.miss.has(k)});
   ws.n++;if(ok)ws.ok++;
-  if(!ok&&c&&!ws.prac){c.m=(c.m||0)+1;c.lm=Date.now()}
-  wSched(ok);tick();save();
-  WQ.shift();if(!ok){ws.miss.add(k);WQ.splice(Math.min(3,WQ.length),0,{k,t:'rcl',w:1})}
+  // A word the level test only presumed known (pc) goes back to its lesson as New when missed, to be taught properly.
+  wc.reset=!ok&&c&&c.pc&&!ws.prac;
+  if(wc.reset)delete S.w[k];
+  else if(!ok&&c&&!ws.prac){c.m=(c.m||0)+1;c.lm=Date.now()}
+  wSched(ok);if(ok&&c&&!ws.prac)delete c.pc;tick();save();
+  WQ.shift();if(!ok&&!wc.reset){ws.miss.add(k);WQ.splice(Math.min(3,WQ.length),0,{k,t:'rcl',w:1})}
   if(S.au!==0)say(w[0]);
   wFeedback();
 }
 function wFeedback(){
   const {w,ok,note,typed,t}=wc,c=S.w[w[3]],canOver=!ok&&t.endsWith('T')&&!wc.overruled;
   document.getElementById('fb').innerHTML=`<div class="fb ${ok?'g':'b'}"><b>${ok?'Correct.':'Not quite.'}</b>${note?' '+note:''}${!ok&&typed?` You typed <b>${esc(typed)}</b>.`:''}
-  <p style="margin-top:6px"><b style="font-family:var(--disp);font-size:1.25rem">${esc(dn(w))}</b> · ${esc(w[1])}${w[2]?` <span class="mu">· ${esc(w[2])}</span>`:''}</p>${sayB(w[0])}${schTxt(c,wc.b0,ok,ws.prac)}
+  <p style="margin-top:6px"><b style="font-family:var(--disp);font-size:1.25rem">${esc(dn(w))}</b> · ${esc(w[1])}${w[2]?` <span class="mu">· ${esc(w[2])}</span>`:''}</p>${sayB(w[0])}${wc.reset?`<p class="sch">The level test guessed you knew this one. It’s back in its lesson, <b>${esc(LS[w[4]].t)}</b>, to learn properly.</p>`:schTxt(c,wc.b0,ok,ws.prac)}
   ${canOver?'<p style="margin-top:8px"><button class="lk" onclick="wOverrule()">My meaning was right too: count it as right</button></p>':''}</div>
   <button class="nx p" id="nx" onclick="wAsk()">${WQ.length?'Next':'Finish'}</button>`;
   document.getElementById('nx').focus();
 }
 // "Count it as right": undo the miss (schedule, miss count, the repeat question), then score it as right.
 function wOverrule(){
-  const k=wc.w[3],c=S.w[k];if(wc.ok||wc.overruled)return;
+  const k=wc.w[3];if(wc.ok||wc.overruled)return;
+  if(wc.reset&&wc.snap){S.w[k]={...wc.snap};wc.reset=0}
+  const c=S.w[k];
   wc.overruled=1;wc.ok=true;wc.typed='';wc.note='Counted as right.';ws.ok++;
   if(c&&wc.snap){Object.keys(c).forEach(x=>delete c[x]);Object.assign(c,wc.snap)}
   if(!wc.missBefore)ws.miss.delete(k);

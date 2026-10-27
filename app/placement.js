@@ -2,8 +2,8 @@
 // Twelve words from each stage, easiest stage first, all typed (no choices to guess from): half Dutch → English,
 // half English → Dutch. A stage counts as known with 10 of 12 right; the test stops at the first stage below that.
 // Then 22 grammar gaps, also typed, from A1 to B1. The grammar score caps the level, so knowing words alone
-// can't place you high. Only words typed right are skipped in the lessons (as Familiar, back within 3–10 days);
-// every other word is still taught, so the test never hides a word you haven't shown you know.
+// can't place you high. Words typed right become Known; the untested words of passed stages are presumed Known
+// and checked by typed reviews over the next weeks. Missing a presumed word sends it back to its lesson as New.
 // Grammar items: [hint, sentence with ___, accepted answers, grammar section].
 const PG=[
  ['wonen','Hij ___ in Utrecht.',['woont'],2],
@@ -35,7 +35,7 @@ function plIntro(){
   <p>About ten to fifteen minutes. First words, from the most common upwards, then ${PG.length} short grammar gaps.</p>
   <ul><li>Everything is typed, no choices: sometimes the English meaning, sometimes the Dutch word (with <i>de</i> or <i>het</i> for nouns). Small typos are fine.</li>
   <li>Don’t know it? Press <b>Enter</b> on an empty box. Guessing doesn’t help you: it only puts you where the lessons are too hard.</li>
-  <li>Only the words you type right are skipped in the lessons, and they come back in your reviews soon. All other words are still taught.</li>
+  <li>Words of the stages you pass are skipped in the lessons, but nothing is taken for granted: they all come up as typed reviews over the next few weeks, and any you miss go back to their lesson.</li>
   <li>You can take the test again at any time.</li></ul>
   ${S.pl?`<p class="mu">Last result: <b>${esc(S.pl.level)}</b> on ${esc(new Date(S.pl.date).toLocaleDateString())}.</p>`:''}
   <div class="btns"><button class="p" onclick="plStart()">Start the test</button></div>`;
@@ -82,13 +82,16 @@ function plFin(){
   // Grammar caps the level: words alone can't place you above what the grammar answers show.
   const li=Math.min(np,Math.floor(gr*5/PG.length+.25));
   const lv=['Beginner (around A0–A1)','Around A1','Around A1–A2','Around A2','Around A2–B1','Around B1 or above'][li];
-  // Only words typed right are skipped; everything else is still taught in the lessons.
+  // Words typed right become Known. Untested words of passed stages are only presumed known (pc): Known too, so
+  // they come back as typed reviews, spread over two to four weeks; a miss sends one back to its lesson as New.
+  const pre=W.filter(w=>!S.w[w[3]]&&PL.res[w[3]]===undefined&&s.indexOf(LS[w[4]].stage)<np),span=Math.max(7,Math.min(28,pre.length/25));
   let n=0;
-  W.forEach(w=>{const k=w[3];if(!S.w[k]&&PL.res[k]===true){S.w[k]={b:2,d:now+(3+Math.random()*7)*DAY};n++}});
-  S.pl={level:lv,date:now,stages:np,words:n};save();
+  W.forEach(w=>{const k=w[3];if(!S.w[k]&&PL.res[k]===true){S.w[k]={b:3,d:now+(2+Math.random()*8)*DAY};n++}});
+  pre.forEach(w=>{S.w[w[3]]={b:3,d:now+(1+Math.random()*span)*DAY,pc:1}});
+  S.pl={level:lv,date:now,stages:np,words:n,pre:pre.length};save();
   const weak=[...new Set(PG.map((q,i)=>!PL.g[i]?q[3]:-1).filter(i=>i>=0))],nx=LS.findIndex(l=>!lDone(l));
   $.innerHTML=`<p class="mu">Your level</p><div class="lvlbig">${esc(lv)}</div>
-  <p style="margin-top:10px">${np?`You knew the words of ${np} of ${s.length} stages.`:'The lessons start from the beginning.'}${li<np?' Your grammar answers put you lower, so the lessons won’t move too fast.':''} The <b>${n}</b> words you typed right are skipped in the lessons and come back in your reviews within ten days. All other words are still taught.</p>
+  <p style="margin-top:10px">${np?`You knew the words of ${np} of ${s.length} stages.`:'The lessons start from the beginning.'}${li<np?' Your grammar answers put you lower, so the lessons won’t move too fast.':''} The <b>${n}</b> words you typed right are marked Known.${pre.length?` The other <b>${pre.length}</b> words of the stages you passed are presumed Known: they come up as typed reviews over the next ${Math.round(span/7)>1?Math.round(span/7)+' weeks':'week'}, and any you miss go back to their lesson to be learned properly.`:''}</p>
   <p class="mu">This is a rough guide from vocabulary and grammar, not an official test.</p>
   <h2>Grammar</h2><p>${gr} of ${PG.length} right.${weak.length?' Worth reading:':' Nothing urgent to read.'}</p>
   ${weak.map(i=>`<button class="ll" onclick="gPage(${i})"><span>${esc(G[i].t)}</span><span class="mu">read</span></button>`).join('')}

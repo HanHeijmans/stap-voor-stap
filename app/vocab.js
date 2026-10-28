@@ -163,7 +163,8 @@ function wDone(ok,note,typed){
   if(wc.reset)delete S.w[k];
   else if(!ok&&c&&!ws.prac){c.m=(c.m||0)+1;c.lm=Date.now()}
   wSched(ok);if(ok&&c&&!ws.prac)delete c.pc;tick();save();
-  WQ.shift();if(!ok&&!wc.reset){ws.miss.add(k);WQ.splice(Math.min(3,WQ.length),0,{k,t:'rcl',w:1})}
+  // A miss comes back a few questions later in the same direction it was missed in.
+  WQ.shift();if(!ok&&!wc.reset){ws.miss.add(k);WQ.splice(Math.min(3,WQ.length),0,{k,t:wc.it.t,w:1})}
   if(S.au!==0)say(w[0]);
   wFeedback();
 }

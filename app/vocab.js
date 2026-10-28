@@ -84,7 +84,10 @@ function wSpread(ws){
 function wReview(){
   const now=Date.now(),score=w=>{const c=S.w[w[3]];return c.b*1e3-(now-c.d)/DAY+Math.random()*2};
   const pick=wDue().map(w=>[score(w),w]).sort((a,b)=>a[0]-b[0]).slice(0,15).map(x=>x[1]);
-  wRun(wSpread(pick).map(w=>({k:w[3],t:wType(w[3])})),false);
+  // Recognition before recall: a word below Familiar is first recognised (pick its meaning), then, later in the
+  // round, typed from its English. The choices are English meanings, so they never give the Dutch away.
+  const sp=wSpread(pick),weak=w=>(S.w[w[3]]||{b:0}).b<2;
+  wRun([...sp.map(w=>({k:w[3],t:weak(w)?'rec':wType(w[3])})),...sp.filter(weak).map(w=>({k:w[3],t:'rcl'}))],false);
 }
 function wPractice(){wRun(wSpread(sh(Object.keys(S.w).filter(k=>WB[k])).slice(0,10).map(k=>WB[k])).map(w=>({k:w[3],t:wType(w[3])})),true)}
 let ws_fresh=null;

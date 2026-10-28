@@ -1,7 +1,9 @@
 // ---------- State ----------
 const K='stap-v1',DAY=864e5,INT=[0,1,3,7,16,35];
 let S={};try{S=JSON.parse(localStorage.getItem(K))||{}}catch(e){}
-function normS(){S.w=S.w||{};S.g=S.g||{};S.u=S.u||{};S.gv=S.gv||{};S.gb=S.gb||{};S.rd=S.rd||{};S.rs=S.rs||{};S.wr=S.wr||{};S.day=S.day||{d:'',n:0};S.streak=S.streak||{n:0,last:''};S.goal=S.goal||20;S.gr=S.gr||{};S.hist=S.hist||{}}
+function normS(){S.w=S.w||{};S.g=S.g||{};S.u=S.u||{};S.gv=S.gv||{};S.gb=S.gb||{};S.rd=S.rd||{};S.rs=S.rs||{};S.wr=S.wr||{};S.day=S.day||{d:'',n:0};S.streak=S.streak||{n:0,last:''};S.goal=S.goal||20;S.gr=S.gr||{};S.hist=S.hist||{};
+  // Verb drill items used to be one per verb; now one per verb and tense ('lopen|present').
+  for(const k in S.gv)if(!k.includes('|')){const c=S.gv[k];['present','past'].forEach(t=>S.gv[k+'|'+t]=S.gv[k+'|'+t]||{b:c.b,d:c.d});delete S.gv[k]}}
 normS();
 // On a plain website, ask the browser not to clear the saved progress when space runs low.
 try{navigator.storage.persist().catch(()=>{})}catch(e){}

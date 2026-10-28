@@ -130,11 +130,11 @@ const SB=[
 ['I think that she is ill.','Ik denk dat zij ziek is']
 ];
 function gHome(){
-  const vd=gDue(S.gv,[...VB,...VS].map(v=>v[0])).length,tn=cjTenses(),sd=gDue(S.gb,SB.map((_,i)=>String(i))).length,rd=gDue(S.gr,grKeys()).length;
+  const vd=gDue(S.gv,cjItems()).length,tn=cjTenses(),sd=gDue(S.gb,SB.map((_,i)=>String(i))).length,rd=gDue(S.gr,grKeys()).length;
   $.innerHTML=`<button class="lk" onclick="home()">All sections</button>${H('puzzle','Grammar','grammatica')}
   <p class="mu">How Dutch sentences work, in ${G.length} short sections with quick checks, and drills on a review schedule.</p>
-  <div class="btns">${grKeys().length?`<button class="p" onclick="grStart()">Rule review: the sections you have read${rd?` · <b>${rd} due</b>`:''}</button>`:''}<button class="p" onclick="cjStart()">Verb drill: ${tn.length>1?tn.slice(0,-1).join(', ')+' and '+tn[tn.length-1]:'the present'}${cjVerbs().length>VB.length?', separable verbs too':''}${vd?` · <b>${vd} due</b>`:''}</button><button class="p" onclick="sbStart()">Sentence builder: Dutch word order${sd?` · <b>${sd} due</b>`:''}</button></div>
-  <p class="mu" style="font-size:.85rem">Each rule, verb and sentence has its own review schedule, like words: what is due comes first in a round.</p>
+  <div class="btns">${grKeys().length?`<button class="p" onclick="grStart()">Rule review: the sections you have read${rd?` · <b>${rd} due</b>`:''}</button>`:''}<button class="p" onclick="cjStart()">Verb drill: ${tn.length>1?tn.slice(0,-1).join(', ')+' and '+tn[tn.length-1]:'the present'}${cjVerbs().length>VB.length?', separable verbs too':''}${vd?` · <b>${vd} due</b>`:''}</button><button onclick="cjList()">Your verbs: every form, and how well you know each tense</button><button class="p" onclick="sbStart()">Sentence builder: Dutch word order${sd?` · <b>${sd} due</b>`:''}</button></div>
+  <p class="mu" style="font-size:.85rem">Each rule, verb and sentence has its own review schedule, like words: what is due comes first in a round. The verb drill uses the verbs you have learned in Words, keeps a schedule per verb and tense (a person you miss comes back first), and shows hints until you know that tense well.</p>
   ${forecast([...Object.values(S.gr),...Object.values(S.gv),...Object.values(S.gb)])}
   <h2>Sections</h2><div class="btns">${G.map((g,i)=>`<button onclick="gPage(${i})">${S.g[i]?'✓ ':''}${i+1}. ${g.t}</button>`).join('')}</div>`;
 }
@@ -144,25 +144,39 @@ function gPick(st,keys,n){const due=gDue(st,keys).sort((a,b)=>st[a].b-st[b].b),f
 // Right after a hint or on a retry: no level up, but back tomorrow rather than straight away.
 function gMark(st,k,ok,ses,again,pending){const c=st[k]=st[k]||{b:0,d:Date.now()};if(ok){if(again)c.d=Math.max(c.d,Date.now()+DAY);else if(!pending&&!ses.pro.has(k)&&!ses.miss.has(k)){ses.pro.add(k);srsUp(c)}}else if(!ses.miss.has(k)){ses.miss.add(k);srsDown(c)}tick();save()}
 // The verb drill grows with the learner: the present at first, the simple past and the perfect once their
-// sections are read, separable verbs once theirs is. Verbs learned in Words come first. A verb below Known
-// starts with its ik form (the stem everything is built on).
+// sections are read, separable verbs once theirs is. Only verbs learned in Words are drilled.
+// Each verb has a schedule per tense (S.gv['lopen|past']), so a weak tense comes back sooner than the ones you
+// know. A missed person is remembered (wp) and asked first the next time that tense comes up. Below Known, the
+// present starts with the ik form (the stem everything is built on), and a hint line shows the stem and the
+// helping verb until that tense of the verb reaches Known.
 const gRead=t=>!!S.g[G.findIndex(g=>g.t==t)];
 const cjTenses=()=>['present',...(gRead('The simple past')?['past']:[]),...(gRead('The perfect tense')?['perfect']:[])];
 const cjVerbs=()=>gRead('Separable verbs')?[...VB,...VS]:VB;
 const cjLearned=v=>W.some(w=>S.w[w[3]]&&w[0].split('/').includes(v[0])&&/^(to |can)/.test(w[1]));
+const cjItems=()=>{const tn=cjTenses();return cjVerbs().filter(cjLearned).flatMap(v=>tn.map(t=>v[0]+'|'+t))};
+const cjHint=k=>(S.gv[k]||{b:0}).b<3;
 let CJ,cjc,cjs;
 function cjStart(){
-  const all=cjVerbs(),keys=[...all.filter(cjLearned),...all.filter(v=>!cjLearned(v))].map(v=>v[0]),tn=cjTenses();
-  const vs=gPick(S.gv,keys,6).map(k=>all.find(v=>v[0]==k)),rnd=v=>({v,tense:tn[Math.floor(Math.random()*tn.length)],p:Math.floor(Math.random()*6)});
-  CJ=[...sh(vs.map(v=>(S.gv[v[0]]||{b:0}).b<3?{v,tense:'present',p:0}:rnd(v))),...sh(vs.map(rnd))];
+  const ks=cjItems(),TO=['present','past','perfect'],ti=k=>TO.indexOf(k.split('|')[1]),all=[...VB,...VS];
+  if(!ks.length){$.innerHTML=`<button class="lk" onclick="gHome()">All grammar sections</button><h2>No verbs yet</h2><p>The verb drill uses only verbs you have learned in Words. Learn a lesson with verbs (their meaning starts with “to”) and come back.</p><div class="btns"><button class="p" id="nx" onclick="gHome()">Back</button></div>`;return document.getElementById('nx').focus()}
+  // Twelve items a round: due ones first (weakest first), then new ones (the present before the other tenses),
+  // then the rest. The same verb is not asked twice in a row where that can be avoided.
+  const due=gDue(S.gv,ks).sort((a,b)=>S.gv[a].b-S.gv[b].b),fresh=sh(ks.filter(k=>!S.gv[k])).sort((a,b)=>ti(a)-ti(b)),rest=sh(ks.filter(k=>S.gv[k]&&!due.includes(k)));
+  const qs=sh([...due,...fresh,...rest].slice(0,12).map(k=>{const [vk,tense]=k.split('|'),c=S.gv[k],wp=c&&c.wp;
+    return {k,v:all.find(v=>v[0]==vk),tense,p:wp!=null?wp:tense=='present'&&(!c||c.b<3)?0:Math.floor(Math.random()*6)}}));
+  CJ=[];while(qs.length){const last=CJ.length&&CJ[CJ.length-1].v[0],i=Math.max(0,qs.findIndex(q=>q.v[0]!==last));CJ.push(qs.splice(i,1)[0])}
   cjs={ok:0,n:0,pro:new Set(),miss:new Set()};cjAsk();
 }
 function cjAsk(){
   if(!CJ.length)return cjFin();
-  const q=CJ[0];cjc={q,ans:conjNL(q.v,q.tense,q.p),done:0};
-  $.innerHTML=`${bar('gHome()',cjs.n,CJ.length)}<p style="margin-top:14px"><b style="font-family:var(--disp);font-size:1.5rem">${q.v[0]}</b> <span class="mu">${q.v[1]}</span>${q.v[9]?` <span class="mu">· separable: <b>${q.v[9]}</b> goes to the end</span>`:''}</p>
+  const q=CJ[0],v=q.v,stem=v[9]?v[2].split(' ')[0]:v[2].split('/')[0];cjc={q,ans:conjNL(v,q.tense,q.p),done:0};
+  // The hint never gives the answer itself: no stem when the ik form is asked, no participle in the perfect.
+  const hint=S.gs===0?'':cjHint(q.k)?[q.tense=='present'&&q.p==0?'':`stem <b>${stem}</b>`,q.tense=='perfect'?`with <b>${v[7].replace('/',' or ')}</b>`:''].filter(Boolean).join(' · '):'';
+  $.innerHTML=`${bar('gHome()',cjs.n,CJ.length)}<p style="margin-top:14px"><b style="font-family:var(--disp);font-size:1.5rem">${v[0]}</b> <span class="mu">${v[1]}</span>${v[9]?` <span class="mu">· separable: <b>${v[9]}</b> goes to the end</span>`:''}</p>
+  ${hint?`<p class="mu">${hint}</p>`:S.gs!==0&&!cjHint(q.k)?`<p class="mu">No hints: you know this verb in the ${q.tense} well now.</p>`:''}
   <h2 style="font-size:1.6rem;margin:.3em 0">${PERS[q.p]} · ${q.tense}</h2>
-  <form class="ans" onsubmit="cjSubmit();return false"><input id="in" class="in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="nl" aria-label="Verb form" placeholder="${q.tense=='perfect'?'e.g. heb gewerkt':q.v[9]?'e.g. sta op':'the verb form'}"><button class="p" id="ck">Check</button></form><div id="fb"></div>`;
+  <form class="ans" onsubmit="cjSubmit();return false"><input id="in" class="in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="nl" aria-label="Verb form" placeholder="${q.tense=='perfect'?'e.g. heb gewerkt':v[9]?'e.g. sta op':'the verb form'}"><button class="p" id="ck">Check</button></form>
+  <label class="ck"><input type="checkbox" ${S.gs!==0?'checked':''} onchange="S.gs=this.checked?1:0;save();cjAsk()"> Show hints while a verb is still new</label><div id="fb"></div>`;
   document.getElementById('in').focus();
 }
 function cjSubmit(){
@@ -171,13 +185,38 @@ function cjSubmit(){
   const ok=c.ans.some(a=>norm(a)==v||deacc(norm(a))==deacc(v));
   inp.disabled=true;document.getElementById('ck').disabled=true;
   cjs.n++;if(ok)cjs.ok++;CJ.shift();if(!ok)CJ.splice(Math.min(3,CJ.length),0,{...c.q,w:1});
-  const k=c.q.v[0],b0=(S.gv[k]||{b:0}).b;gMark(S.gv,k,ok,cjs,c.q.w,CJ.some(x=>x.v[0]===k));
+  const k=c.q.k,b0=(S.gv[k]||{b:0}).b;gMark(S.gv,k,ok,cjs,c.q.w,CJ.some(x=>x.k===k));
+  {const g=S.gv[k];if(!ok)g.wp=c.q.p;else if(!c.q.w&&g.wp===c.q.p)delete g.wp;save()}
   const full=PERS[c.q.p].split(' ')[0]+' '+c.ans.join(' / ');
   if(S.au!==0)say(PERS[c.q.p].split(' ')[0]+' '+c.ans[0]);
-  document.getElementById('fb').innerHTML=`<div class="fb ${ok?'g':'b'}"><b>${ok?'Correct.':'Not quite.'}</b>${!ok&&inp.value?` You typed <b>${esc(inp.value)}</b>.`:''}<p style="margin-top:6px"><b style="font-family:var(--disp);font-size:1.2rem">${esc(full)}</b></p>${schTxt(S.gv[k],b0,ok,false).replace('<p class="sch">','<p class="sch"><b>'+k+'</b> ')}</div><button class="nx p" id="nx" onclick="cjAsk()">${CJ.length?'Next':'Finish'}</button>`;
+  document.getElementById('fb').innerHTML=`<div class="fb ${ok?'g':'b'}"><b>${ok?'Correct.':'Not quite.'}</b>${!ok&&inp.value?` You typed <b>${esc(inp.value)}</b>.`:''}<p style="margin-top:6px"><b style="font-family:var(--disp);font-size:1.2rem">${esc(full)}</b></p>${schTxt(S.gv[k],b0,ok,false).replace('<p class="sch">','<p class="sch"><b>'+c.q.v[0]+' · '+c.q.tense+'</b> ')}<p><button class="lk" onclick="cjVerb('${c.q.v[0]}',1)">All forms of ${c.q.v[0]}</button></p></div><button class="nx p" id="nx" onclick="cjAsk()">${CJ.length?'Next':'Finish'}</button>`;
   document.getElementById('nx').focus();
 }
 function cjFin(){$.innerHTML=`<h1>${cjs.ok} / ${cjs.n}</h1><p>${cjs.ok==cjs.n?'Every form right.':'Missed forms came back for another try.'}</p><div class="btns"><button class="p" onclick="cjStart()">Another round</button><button onclick="gHome()">Done</button></div>`}
+// Your verbs: the learned verbs with their strength, and a page per verb with every form.
+const cjLv=v=>{const ks=cjItems().filter(k=>k.split('|')[0]==v[0]);return ks.length?Math.floor(ks.reduce((a,k)=>a+(S.gv[k]||{b:0}).b,0)/ks.length):0};
+function cjList(){
+  const vs=[...VB,...VS].filter(cjLearned).sort((a,b)=>a[0].localeCompare(b[0])),now=Date.now(),its=cjItems();
+  $.innerHTML=`<button class="lk" onclick="gHome()">All grammar sections</button>${H('puzzle','Your verbs','werkwoorden')}
+  <p class="mu">The ${vs.length} verbs you have learned in Words. The dots show how well you can build their forms (the average over the tenses you drill). Open one for every form.</p>
+  ${vs.length?vs.map(v=>{const n=its.filter(k=>k.split('|')[0]==v[0]&&S.gv[k]&&S.gv[k].d<=now).length;
+    return `<button class="ll" onclick="cjVerb('${v[0]}')"><span><b>${v[0]}</b> <span class="mu">${v[1]}</span></span><span class="mu">${n?`<b>${n} due</b> `:''}${pips(cjLv(v))}</span></button>`}).join('')
+   :'<p>No verbs yet: learn a lesson with verbs in Words first.</p>'}
+  <div class="btns"><button class="p" onclick="cjStart()">Verb drill</button></div>`;
+  scrollTo(0,0);
+}
+function cjVerb(vk,fromDrill){
+  const v=[...VB,...VS].find(x=>x[0]==vk),on=cjTenses(),its=cjItems(),TO=['present','past','perfect'];
+  const lv=t=>{const k=vk+'|'+t,c=S.gv[k];if(!its.includes(k))return on.includes(t)?'':`<span class="mu">joins the drill once you read “${t=='past'?'The simple past':'The perfect tense'}”</span>`;
+    return c?`${pips(c.b)} <b>${LVN[c.b]}</b> <span class="mu">· ${c.d<=Date.now()?'due now':'next '+when(c.d)}${c.wp!=null?` · last missed: ${PERS[c.wp]}`:''}</span>`:'<span class="mu">not drilled yet</span>'};
+  const rows=PERS.map((p,i)=>[`<b>${p}</b>`,...TO.map(t=>esc(conjNL(v,t,i).join(' / ')))]);
+  $.innerHTML=`<button class="lk" onclick="${fromDrill?'cjAsk()':'cjList()'}">${fromDrill?'Back to the drill':'All your verbs'}</button>
+  <p style="margin-top:14px"><b style="font-family:var(--disp);font-size:1.8rem">${v[0]}</b> <span class="mu">${v[1]}</span> ${sayB(v[0])}</p>
+  <p>Stem <b>${v[9]?v[2].split(' ')[0]:v[2].split('/')[0]}</b> · past <b>${v[5]}</b>, <b>${v[6]}</b> · perfect with <b>${v[7].replace('/',' or ')}</b> + <b>${v[8]}</b>${v[9]?` · separable: <b>${v[9]}</b> goes to the end`:''}</p>
+  ${TO.map(t=>`<p class="sl"><span class="mu">${t[0].toUpperCase()+t.slice(1)}:</span> ${lv(t)}</p>`).join('')}
+  ${tbl(['','present','past','perfect'],rows)}`;
+  scrollTo(0,0);
+}
 // ---------- Rule review ----------
 // Each grammar section you have read becomes a rule with its own review schedule (S.gr, by title), like a word.
 // A round takes up to six rules, due ones first, with two questions each: one of the section's own checks and,

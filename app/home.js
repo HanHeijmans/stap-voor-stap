@@ -1,6 +1,6 @@
 // ---------- Start screen ----------
 function home(){
-  const met=W.filter(w=>S.w[w[3]]).length,wd=wDue().length,gd=gDue(S.gv,[...VB,...VS].map(v=>v[0])).length+gDue(S.gb,SB.map((_,i)=>String(i))).length+gDue(S.gr,grKeys()).length;
+  const met=W.filter(w=>S.w[w[3]]).length,wd=wDue().length,gd=gDue(S.gv,cjItems()).length+gDue(S.gb,SB.map((_,i)=>String(i))).length+gDue(S.gr,grKeys()).length;
   const xo=RS.filter(rOpen).length,xd=gDue(S.wr,RS.map((_,i)=>String(i))).length,ur=Object.keys(S.u).length,gr=Object.keys(S.g).length,ro=RS.filter(rOpen).length,wl=LS.filter(lDone).length;
   const next=!S.pl?'p':wd?'w':gd?'g':xd?'x':ur<P.length?'u':wl<LS.length?'w':gr<G.length?'g':'r';
   const tile=(id,f,t,nl,art,stat,frac,due)=>`<button class="tl" onclick="${f}">${id==next?`<span class="chip">${due?'Reviews due':'Up next'}</span>`:''}
@@ -43,7 +43,7 @@ document.addEventListener('keydown',e=>{
   if(b&&!b.disabled){e.preventDefault();b.click()}
 });
 const focusMain=()=>{const b=document.querySelector('.btns .p, .nx.p');if(b)b.focus({preventScroll:true})};
-['wHome','wLesson','uHome','uPage','gHome','gPage','rHome','xHome','plIntro','plFin','wFin','cjFin','sbFin','rFin','grFin','xFin','weekHome']
+['wHome','wLesson','uHome','uPage','gHome','gPage','rHome','xHome','plIntro','plFin','wFin','cjFin','sbFin','rFin','grFin','xFin','weekHome','cjList']
   .forEach(f=>{const o=window[f];window[f]=function(){const r=o.apply(this,arguments);focusMain();return r}});
 // End-of-round screens get a small burst of confetti.
 ['plFin','wFin','cjFin','sbFin','rFin','grFin','xFin']

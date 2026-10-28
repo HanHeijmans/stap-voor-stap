@@ -157,3 +157,8 @@ details li{margin:.5em 0}
 .wk .on .wkb i{background:var(--del)}
 .wk .rd .wkb{border:1px dashed var(--or)}
 .wkb s{position:absolute;left:0;right:0;border-top:2px dashed var(--or)}
+
+/* Your verbs: regular verbs calm, irregular ones in warning red. */
+.ll.vreg{border-left:5px solid var(--ok)}.ll.virr{border-left:5px solid var(--bad);background:var(--badbg)}
+.vtag{display:inline-block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:1px 7px;border-radius:6px;margin-left:6px;vertical-align:2px}
+.vtag.irr{background:var(--bad);color:var(--sf)}.vtag.reg{border:1px solid var(--ok);color:var(--ok)}

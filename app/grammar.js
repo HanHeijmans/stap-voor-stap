@@ -194,13 +194,17 @@ function cjSubmit(){
 }
 function cjFin(){$.innerHTML=`<h1>${cjs.ok} / ${cjs.n}</h1><p>${cjs.ok==cjs.n?'Every form right.':'Missed forms came back for another try.'}</p><div class="btns"><button class="p" onclick="cjStart()">Another round</button><button onclick="gHome()">Done</button></div>`}
 // Your verbs: the learned verbs with their strength, and a page per verb with every form.
+// Regular (weak): the past is the stem + te/de, and hij is the stem + t (werk → werkte, woon → woonde).
+// Everything else (zijn, lopen, kopen, kunnen…) has forms to learn by heart: irregular.
+const vReg=v=>{const f=x=>x.split(' ')[0],st=f(v[2]);return !v[2].includes('/')&&!v[4].includes('/')&&!v[5].includes('/')&&f(v[4])==(st.endsWith('t')?st:st+'t')&&[st+'te',st+'de'].includes(f(v[5]))};
+const vTag=v=>vReg(v)?'<span class="vtag reg">regular</span>':'<span class="vtag irr">irregular ⚠</span>';
 const cjLv=v=>{const ks=cjItems().filter(k=>k.split('|')[0]==v[0]);return ks.length?Math.floor(ks.reduce((a,k)=>a+(S.gv[k]||{b:0}).b,0)/ks.length):0};
 function cjList(){
   const vs=[...VB,...VS].filter(cjLearned).sort((a,b)=>a[0].localeCompare(b[0])),now=Date.now(),its=cjItems();
   $.innerHTML=`<button class="lk" onclick="gHome()">All grammar sections</button>${H('puzzle','Your verbs','werkwoorden')}
-  <p class="mu">The ${vs.length} verbs you have learned in Words. The dots show how well you can build their forms (the average over the tenses you drill). Open one for every form.</p>
+  <p class="mu">The ${vs.length} verbs you have learned in Words. The dots show how well you can build their forms (the average over the tenses you drill). Open one for every form. <span class="vtag irr">irregular ⚠</span> verbs have forms to learn by heart; <span class="vtag reg">regular</span> ones follow the rule: stem + te/de in the past, ge… + t/d in the perfect.</p>
   ${vs.length?vs.map(v=>{const n=its.filter(k=>k.split('|')[0]==v[0]&&S.gv[k]&&S.gv[k].d<=now).length;
-    return `<button class="ll" onclick="cjVerb('${v[0]}')"><span><b>${v[0]}</b> <span class="mu">${v[1]}</span></span><span class="mu">${n?`<b>${n} due</b> `:''}${pips(cjLv(v))}</span></button>`}).join('')
+    return `<button class="ll ${vReg(v)?'vreg':'virr'}" onclick="cjVerb('${v[0]}')"><span><b>${v[0]}</b>${vTag(v)} <span class="mu">${v[1]}</span></span><span class="mu">${n?`<b>${n} due</b> `:''}${pips(cjLv(v))}</span></button>`}).join('')
    :'<p>No verbs yet: learn a lesson with verbs in Words first.</p>'}
   <div class="btns"><button class="p" onclick="cjStart()">Verb drill</button></div>`;
   scrollTo(0,0);
@@ -211,7 +215,7 @@ function cjVerb(vk,fromDrill){
     return c?`${pips(c.b)} <b>${LVN[c.b]}</b> <span class="mu">· ${c.d<=Date.now()?'due now':'next '+when(c.d)}${c.wp!=null?` · last missed: ${PERS[c.wp]}`:''}</span>`:'<span class="mu">not drilled yet</span>'};
   const rows=PERS.map((p,i)=>[`<b>${p}</b>`,...TO.map(t=>esc(conjNL(v,t,i).join(' / ')))]);
   $.innerHTML=`<button class="lk" onclick="${fromDrill?'cjAsk()':'cjList()'}">${fromDrill?'Back to the drill':'All your verbs'}</button>
-  <p style="margin-top:14px"><b style="font-family:var(--disp);font-size:1.8rem">${v[0]}</b> <span class="mu">${v[1]}</span> ${sayB(v[0])}</p>
+  <p style="margin-top:14px"><b style="font-family:var(--disp);font-size:1.8rem">${v[0]}</b>${vTag(v)} <span class="mu">${v[1]}</span> ${sayB(v[0])}</p>
   <p>Stem <b>${v[9]?v[2].split(' ')[0]:v[2].split('/')[0]}</b> · past <b>${v[5]}</b>, <b>${v[6]}</b> · perfect with <b>${v[7].replace('/',' or ')}</b> + <b>${v[8]}</b>${v[9]?` · separable: <b>${v[9]}</b> goes to the end`:''}</p>
   ${TO.map(t=>`<p class="sl"><span class="mu">${t[0].toUpperCase()+t.slice(1)}:</span> ${lv(t)}</p>`).join('')}
   ${tbl(['','present','past','perfect'],rows)}`;

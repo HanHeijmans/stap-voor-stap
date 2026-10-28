@@ -135,6 +135,9 @@ function gradeNL(ans,w){
 // "the", a plural -s and a small typo.
 const enNorm=s=>s.toLowerCase().replace(/\(.*?\)/g,' ').replace(/[^a-z' ]/g,' ').replace(/\b(to|a|an|the)\b/g,' ').replace(/\s+/g,' ').trim();
 function gradeEN(ans,gloss){
+  // A meaning that is only a little word like "a" or "the" (een, het) is compared as typed, before those words are dropped.
+  const raw=s=>s.toLowerCase().replace(/\(.*?\)/g,' ').replace(/[^a-z' ]/g,' ').replace(/\s+/g,' ').trim(),r=raw(ans);
+  if(r&&gloss.split(/[,;/]|\bor\b/).some(t=>raw(t)==r))return true;
   const a=enNorm(ans);if(!a)return false;
   const alts=[...gloss.split(/[,;/]|\bor\b/),gloss].map(enNorm).filter(Boolean);
   return alts.some(t=>a==t||a.replace(/s$/,'')==t.replace(/s$/,'')||(t.length>=5&&lev(a,t)<=1)||(t.length>=9&&lev(a,t)<=2));

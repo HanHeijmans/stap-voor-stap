@@ -33,7 +33,7 @@ let PL=null;
 function plIntro(){
   $.innerHTML=`<button class="lk" onclick="home()">All sections</button>${H('steps','Find your level','niveautest')}
   <p>About ten to fifteen minutes. First words, from the most common upwards, then ${PG.length} short grammar gaps.</p>
-  <ul><li>Everything is typed, no choices: sometimes the English meaning, sometimes the Dutch word (with <i>de</i> or <i>het</i> for nouns). Small typos are fine.</li>
+  <ul><li>Everything is typed, no choices: sometimes the English meaning, sometimes the Dutch word (with <i>de</i> or <i>het</i> for nouns). Small typos are fine, and so is another word that means the same: if one is marked wrong, you can say so.</li>
   <li>Don’t know it? Press <b>Enter</b> on an empty box. Guessing doesn’t help you: it only puts you where the lessons are too hard.</li>
   <li>Words of the stages you pass are skipped in the lessons, but nothing is taken for granted: they all come up as typed reviews over the next few weeks, and any you miss go back to their lesson.</li>
   <li>You can take the test again at any time.</li></ul>
@@ -43,7 +43,7 @@ function plIntro(){
 const PLN=12,PLPASS=10;
 function plStart(){PL={st:0,pass:[],res:{},g:[],gi:0};plStage()}
 function plStage(){
-  const s=stages()[PL.st];PL.items=sh(W.filter(w=>LS[w[4]].stage==s)).slice(0,PLN);PL.i=0;PL.ok=0;plAsk();
+  const s=stages()[PL.st];PL.items=sh(W.filter(w=>LS[w[4]].stage==s&&w[1].replace(/\(.*?\)/g,'').trim())).slice(0,PLN);PL.i=0;PL.ok=0;plAsk();
 }
 const plForm=(f,nl,lbl)=>`<form class="ans" onsubmit="${f}();return false"><input id="in" class="in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="${nl?'nl':'en'}" aria-label="${lbl}" placeholder="${nl?'Dutch':'meaning'}"><button class="p" id="ck">Next</button></form>
   <p><button class="lk" onclick="${f=='plType'?'plPick':'plG'}(false)">I don’t know</button> <span class="mu">(or Enter on an empty box)</span></p>`;
@@ -52,12 +52,23 @@ function plAsk(){
   $.innerHTML=`${bar('home()',PL.st*PLN+PL.i,(s.length-PL.st)*PLN-PL.i)}<p class="mu" style="margin-top:14px">Part 1: words · ${esc(s[PL.st])} · ${PL.i+1} of ${n}</p>
   ${nl?`<div class="dt"><b style="font-size:1.6rem">${esc(w[1])}</b></div><p><b>Type it in Dutch</b>${/^(de|het) /.test(dn(w))?' (with <i>de</i> or <i>het</i>)':''}</p>`
     :`<div class="dt"><b style="font-size:${dn(w).length>16?1.35:dn(w).length>11?1.7:2.1}rem">${esc(dn(w))}</b></div><p><b>What does it mean?</b> Type it in English.</p>`}
-  ${plForm('plType',nl,nl?'Dutch word':'Meaning in English')}`;
+  ${plForm('plType',nl,nl?'Dutch word':'Meaning in English')}<div id="plfb"></div>`;
   document.getElementById('in').focus();
 }
+// Fair to people who already speak Dutch: a right noun without its article counts (a wrong article doesn't),
+// so does another word from the list that shares a meaning (aardig for leuk), and any meaning of the same Dutch
+// word (dag: bye, day). Anything else that is marked wrong shows what was expected, with "My answer was right too".
+const plMeans=g=>g.split(/[,;/]|\bor\b/).map(t=>t.toLowerCase().replace(/\(.*?\)/g,'').replace(/[^a-z' ]/g,' ').replace(/\s+/g,' ').trim()).filter(Boolean);
+const plNLok=(v,x)=>{const g=gradeNL(v,x);return !!g.ok||(!!g.art&&!/^(de|het) /.test(norm(v)))};
+function plNL(v,w){const m=new Set(plMeans(w[1]));return plNLok(v,w)||W.some(x=>x!==w&&plMeans(x[1]).some(t=>m.has(t))&&plNLok(v,x))}
+function plEN(v,w){const b=t=>norm(t).replace(/^(de|het) /,''),ks=new Set(w[0].split('/').map(b));return W.some(x=>x[0].split('/').some(t=>ks.has(b(t)))&&gradeEN(v,x[1]))}
 function plType(){
-  const v=document.getElementById('in').value.trim(),w=PL.items[PL.i];
-  plPick(!!v&&(PL.i%2?!!gradeNL(v,w).ok:W.some(x=>(x==w||x[0]==w[0])&&gradeEN(v,x[1]))));
+  const inp=document.getElementById('in'),v=inp.value.trim(),w=PL.items[PL.i],nl=PL.i%2;
+  if(PL.done||inp.disabled)return;if(!v)return plPick(false);
+  if(nl?plNL(v,w):plEN(v,w))return plPick(true);
+  inp.disabled=true;document.getElementById('ck').disabled=true;
+  document.getElementById('plfb').innerHTML=`<div class="fb b">Not what the app expected: <b>${esc(nl?dn(w):w[1])}</b>. If yours means the same, it counts. <button class="lk" onclick="plPick(true)">My answer was right too</button></div><button class="nx p" id="nx" onclick="plPick(false)">Next</button>`;
+  document.getElementById('nx').focus();
 }
 function plPick(ok){
   if(PL.done)return;PL.done=1;const w=PL.items[PL.i];
@@ -75,7 +86,9 @@ function plGrammar(){
   ${plForm('plGType',1,'Missing Dutch words')}`;
   document.getElementById('in').focus();
 }
-function plGType(){const v=deacc(norm(document.getElementById('in').value));plG(!!v&&PG[PL.gi][2].some(a=>deacc(norm(a))==v))}
+// The gap's words, or the whole sentence typed out with them filled in, both count.
+const plFill=(q,a)=>{const n=(q.match(/___/g)||[]).length,ws=a.split(' ');return n>1?q.replace('___',ws.slice(0,-1).join(' ')).replace('___',ws[ws.length-1]):q.replace('___',a)};
+function plGType(){const v=deacc(norm(document.getElementById('in').value)),q=PG[PL.gi];plG(!!v&&q[2].some(a=>deacc(norm(a))==v||deacc(norm(plFill(q[1],a)))==v))}
 function plG(ok){if(PL.done)return;PL.done=1;PL.g.push(ok);PL.gi++;plGrammar()}
 function plFin(){
   const s=stages(),np=PL.pass.filter(Boolean).length,now=Date.now(),gr=PL.g.filter(Boolean).length;

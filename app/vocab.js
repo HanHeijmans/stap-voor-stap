@@ -134,7 +134,7 @@ function wAsk(){
 }
 function wSubmit(){
   if(!wc||wc.done)return;const inp=document.getElementById('in'),v=inp.value.trim(),g=v?gradeNL(v,wc.w):{ok:0};
-  inp.disabled=true;document.getElementById('ck').disabled=true;wDone(!!g.ok,g.note,v);
+  inp.disabled=true;document.getElementById('ck').disabled=true;wc.art=!!g.art;wDone(!!g.ok,g.note,v);
 }
 // A typed meaning: any listed meaning counts, also that of another word spelled the same (zijn: his, to be).
 function wMean(){
@@ -169,10 +169,10 @@ function wDone(ok,note,typed){
   wFeedback();
 }
 function wFeedback(){
-  const {w,ok,note,typed,t}=wc,c=S.w[w[3]],canOver=!ok&&t.endsWith('T')&&!wc.overruled;
+  const {w,ok,note,typed,t}=wc,c=S.w[w[3]],canOver=!ok&&!wc.overruled&&!!typed&&(t.endsWith('T')||(t=='rcl'&&!wc.art));
   document.getElementById('fb').innerHTML=`<div class="fb ${ok?'g':'b'}"><b>${ok?'Correct.':'Not quite.'}</b>${note?' '+note:''}${!ok&&typed?` You typed <b>${esc(typed)}</b>.`:''}
   <p style="margin-top:6px"><b style="font-family:var(--disp);font-size:1.25rem">${esc(dn(w))}</b> · ${esc(w[1])}${w[2]?` <span class="mu">· ${esc(w[2])}</span>`:''}</p>${sayB(w[0])}${wc.reset?`<p class="sch">The level test guessed you knew this one. It’s back in its lesson, <b>${esc(LS[w[4]].t)}</b>, to learn properly.</p>`:schTxt(c,wc.b0,ok,ws.prac)}
-  ${canOver?'<p style="margin-top:8px"><button class="lk" onclick="wOverrule()">My meaning was right too: count it as right</button></p>':''}</div>
+  ${canOver?`<p style="margin-top:8px"><button class="lk" onclick="wOverrule()">${t=='rcl'?'My Dutch was right too':'My meaning was right too'}: count it as right</button></p>`:''}</div>
   <button class="nx p" id="nx" onclick="wAsk()">${WQ.length?'Next':'Finish'}</button>`;
   document.getElementById('nx').focus();
 }

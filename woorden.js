@@ -417,7 +417,7 @@ snijden | to cut | sneed · heeft gesneden
 de wijn | wine
 het sap | juice
 de frisdrank | soft drink
-het koekje | biscuit
+het koekje | biscuit, cookie
 de taart | cake
 het ijs | ice cream; ice
 de chocola/de chocolade | chocolate
@@ -439,7 +439,7 @@ schoonmaken | to clean | separable: ik maak de keuken schoon
 de stad | city, town | pl. steden
 de straat | street
 het dorp | village
-de winkel | shop
+de winkel | shop, store
 de markt | market
 de supermarkt | supermarket
 het station | station
@@ -482,7 +482,7 @@ het verkeer | traffic
 het kruispunt | crossroads
 # Travel
 de reis | trip, journey
-de vakantie | holiday
+de vakantie | holiday, vacation
 het vliegtuig | plane
 het vliegveld | airport
 het kaartje | ticket
@@ -502,7 +502,7 @@ koud | cold
 warm | warm
 de lente/het voorjaar | spring
 de zomer | summer
-de herfst | autumn
+de herfst | autumn, fall
 de winter | winter
 # Colours
 de kleur | colour
@@ -518,7 +518,7 @@ bruin | brown
 roze | pink
 # Clothes
 de kleren | clothes
-de broek | trousers
+de broek | trousers, pants
 het shirt | shirt, T-shirt
 de jas | coat
 de jurk | dress
@@ -643,13 +643,13 @@ het varken | pig
 # Free time
 de hobby | hobby
 de sport | sport
-voetballen | to play football
+voetballen | to play football, to play soccer
 zwemmen | to swim | zwom · heeft or is gezwommen
 wandelen | to walk, to hike
 dansen | to dance
 zingen | to sing | zong · heeft gezongen
 de muziek | music
-de film | film
+de film | film, movie
 het feest | party
 # Love and friendship
 de liefde | love
@@ -755,8 +755,8 @@ het appartement | flat, apartment
 de huur | rent
 de buurt | neighbourhood
 de verwarming | heating
-de lift | lift
-de verdieping | floor, storey
+de lift | lift, elevator
+de verdieping | floor, storey, story
 de bel | doorbell; bell
 de brievenbus | letterbox
 de garage | garage

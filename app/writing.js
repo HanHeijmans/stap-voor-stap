@@ -32,11 +32,14 @@ function xV2(map,l,want){
 // Word-by-word check, then: the same words in another order count if the verb is still second.
 function xGrade(ans,l){
   const got=xWords(ans),want=xWords(l.nl);
-  const marks=want.map((t,i)=>{const r=xTok(got[i],t);return {t,g:got[i]||'',ok:!!r.ok,note:r.note||''}});
+  // Both forms of a word listed as wij/we count wherever the sentence uses one of them.
+  const forms=want.map((t,i)=>{const w=WB[(l.ks||[])[i]],f=w?w[0].split('/').map(x=>deacc(norm(x))).filter(x=>!x.includes(' ')):[];return f.includes(t)?f:[]});
+  const tk=(g,i)=>forms[i].length&&forms[i].includes(g)?{ok:1}:xTok(g,want[i]);
+  const marks=want.map((t,i)=>{const r=tk(got[i],i);return {t,g:got[i]||'',ok:!!r.ok,note:r.note||''}});
   if(marks.every(m=>m.ok)&&got.length==want.length)return {ok:1,marks};
   if(got.length==want.length){
     const left=want.map((t,i)=>i),map=[];
-    const all=got.every((g,gi)=>{const j=left.findIndex(wi=>xTok(g,want[wi]).ok);if(j<0)return false;map[gi]=left.splice(j,1)[0];return true});
+    const all=got.every((g,gi)=>{const j=left.findIndex(wi=>tk(g,wi).ok);if(j<0)return false;map[gi]=left.splice(j,1)[0];return true});
     if(all)return xV2(map,l,want)?{ok:1,order:1,marks}:{ok:0,marks,words:1};
   }
   return {ok:0,marks,extra:got.length-want.length};
@@ -92,13 +95,13 @@ function xDone(){
   document.getElementById('fb').innerHTML=`<div class="fb ${ok?'g':'b'}"><b>${ok?'Correct.':'Not quite.'}</b>${why}
   ${ok&&!res.order?'':`<p style="margin-top:6px" lang="nl">Yours: ${mk}</p>`}
   <p style="margin-top:8px"><b lang="nl" style="font-family:var(--disp);font-size:1.25rem">${esc(l.nl)}</b> ${sayB(l.nl)}<br><span class="mu">${esc(l.en)}</span></p>
-  ${schTxt(S.wr[k],xc.b0,ok,false)}${res.words&&!ok?'<p style="margin-top:8px"><button class="lk" onclick="xOverrule()">My order is right too: count it as right</button></p>':''}</div><button class="nx p" id="nx" onclick="xAsk()">${XQ.length?'Next':'Finish'}</button>`;
+  ${schTxt(S.wr[k],xc.b0,ok,false)}${!ok&&res.typed&&!res.marks.some(m=>!m.ok&&/de<\/b> and <b>het/.test(m.note))?`<p style="margin-top:8px"><button class="lk" onclick="xOverrule()">${res.words?'My order is right too':'My Dutch is right too'}: count it as right</button></p>`:''}</div><button class="nx p" id="nx" onclick="xAsk()">${XQ.length?'Next':'Finish'}</button>`;
   if(S.au!==0)say(l.nl);
   document.getElementById('nx').focus();
 }
 // The learner overrules the order check: undo the miss and count the sentence as right.
 function xOverrule(){
-  if(!xc||!xc.res.words||xc.res.ok)return;const k=String(xc.i);
+  if(!xc||xc.res.ok)return;const k=String(xc.i);
   if(xc.snap)S.wr[k]=xc.snap;else delete S.wr[k];
   if(!xc.missBefore)xs.miss.delete(k);
   const j=XQ.indexOf(xc.i);if(j>=0)XQ.splice(j,1);

@@ -123,23 +123,28 @@ function lev(a,b){const d=Array.from({length:a.length+1},(_,i)=>[i]);for(let j=1
 function gradeNL(ans,w){
   const a=norm(ans),alts=w[0].split('/').map(norm),art=/^(de|het) /;
   if(!a)return {ok:0};
-  for(const t of alts){if(a==t)return {ok:1};if(deacc(a)==deacc(t))return {ok:1,note:`Mind the accents: <b>${esc(t)}</b>`}}
+  const sq=s=>deacc(s).replace(/[\s-]/g,'');
+  for(const t of alts){if(a==t)return {ok:1};if(deacc(a)==deacc(t))return {ok:1,note:`Mind the accents: <b>${esc(t)}</b>`};if(sq(a)==sq(t))return {ok:1,note:`Written as <b>${esc(t)}</b>.`}}
   for(const t of alts)if(/^(de|het) \S+$/.test(t)&&deacc(a.replace(art,''))==deacc(t.replace(art,'')))
     return {ok:0,art:1,note:art.test(a)?`Right word, wrong article: it’s <b>${esc(t)}</b>.`:`Right word, but nouns need their article: <b>${esc(t)}</b>.`};
   for(const t of alts)if(t.length>=6&&lev(deacc(a),deacc(t))==1)return {ok:1,note:`Almost: watch the spelling, <b>${esc(t)}</b>.`};
-  const other=W.find(x=>x!==w&&x[1]==w[1]&&x[0].split('/').some(t=>norm(t)==a));
+  const mean=g=>g.toLowerCase().split(/[,;/]|\s+or\s+/).map(t=>t.trim()).filter(Boolean),wm=new Set(mean(w[1]));
+  const other=W.find(x=>x!==w&&(x[1]==w[1]||mean(x[1]).some(t=>wm.has(t)))&&x[0].split('/').some(t=>deacc(norm(t))==deacc(a)));
   if(other)return {ok:1,note:`Also right. The word we were after: <b>${esc(dn(w))}</b>.`};
   return {ok:0};
 }
 // Typed English meanings: any of the listed meanings counts, ignoring notes in brackets, "to", "a",
 // "the", a plural -s and a small typo.
-const enNorm=s=>s.toLowerCase().replace(/\(.*?\)/g,' ').replace(/[^a-z' ]/g,' ').replace(/\b(to|a|an|the)\b/g,' ').replace(/\s+/g,' ').trim();
+// British and American spellings count as the same: colour/color, centre/center, grey/gray, travelled/traveled, -ise/-ize.
+const enSp=s=>s.replace(/([a-z])our\b/g,'$1or').replace(/([a-z][^aeiou ])re\b/g,'$1er').replace(/\bgrey\b/g,'gray').replace(/ll(ed|ing|er)\b/g,'l$1').replace(/is(e|ed|es|ing)\b/g,'iz$1');
+const enNorm=s=>enSp(s.toLowerCase().replace(/\(.*?\)/g,' ').replace(/[^a-z' ]/g,' ').replace(/\b(to|a|an|the)\b/g,' ').replace(/\s+/g,' ').trim());
 function gradeEN(ans,gloss){
   // A meaning that is only a little word like "a" or "the" (een, het) is compared as typed, before those words are dropped.
   const raw=s=>s.toLowerCase().replace(/\(.*?\)/g,' ').replace(/[^a-z' ]/g,' ').replace(/\s+/g,' ').trim(),r=raw(ans);
-  if(r&&gloss.split(/[,;/]|\bor\b/).some(t=>raw(t)==r))return true;
+  const parts=gloss.replace(/\(.*?\)/g,' ').split(/[,;/]/).flatMap(t=>[t,...t.split(/\s+or\s+/)]);
+  if(r&&parts.some(t=>raw(t)==r))return true;
   const a=enNorm(ans);if(!a)return false;
-  const alts=[...gloss.split(/[,;/]|\bor\b/),gloss].map(enNorm).filter(Boolean);
+  const alts=[...parts,gloss].map(enNorm).filter(Boolean);
   return alts.some(t=>a==t||a.replace(/s$/,'')==t.replace(/s$/,'')||(t.length>=5&&lev(a,t)<=1)||(t.length>=9&&lev(a,t)<=2));
 }
 let VQ;

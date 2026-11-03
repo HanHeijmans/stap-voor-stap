@@ -28,7 +28,7 @@ function wHome(){
   <div class="stats"><div><b>${met.length}</b>met</div><div><b>${met.filter(w=>S.w[w[3]].b>=3).length}</b>known well</div><div><b>${dnN}</b>due now</div></div>
   <div class="btns">${dnN?`<button class="p" onclick="wReview()">Review ${dnN} due word${dnN>1?'s':''}</button>`:''}
   ${nx>=0?`<button class="${dnN?'':'p'}" onclick="wLesson(${nx})">Next lesson: ${esc(LS[nx].t)}</button>`:''}
-  <button onclick="wLessons()">All lessons</button>${met.length&&!dnN?'<button onclick="wPractice()">Extra practice</button>':''}</div>
+  <button onclick="wLessons()">All lessons</button>${met.length&&!dnN?'<button onclick="wPractice()">Extra practice</button>':''}${okCount()?`<button onclick="okHome()">Your accepted answers (${okCount()})</button>`:''}</div>
   ${forecast(met.map(w=>S.w[w[3]]))}
   <h2>Progress by stage</h2>${st}
   ${met.length?`<details><summary>Browse your ${met.length} words</summary><div class="wg">${met.sort((a,b)=>S.w[a[3]].d-S.w[b[3]].d).map(w=>{const c=S.w[w[3]];return `<button class="wt b${c.b}" onclick="wDetail('${esc(w[3]).replace(/'/g,"\\'")}')">${esc(dn(w))}${pips(c.b)}${c.d<=Date.now()?'<span class="dd"></span>':''}</button>`}).join('')}</div><p class="mu" style="font-size:.85rem">Sorted by next review. The dots show strength; an orange dot means due now.</p></details>`:''}
@@ -54,7 +54,31 @@ function wLesson(i){
   <button class="nx p" onclick="${nw.length?'wStart()':`wRun(sh(LS[${i}].w).map(w=>({k:w[3],t:wType(w[3])})),true)`}">${nw.length?'Test me':'Practise this lesson'}</button>`;
   scrollTo(0,0);
 }
-function wDetail(k){const w=WB[k];$.innerHTML=`<button class="lk" onclick="wHome()">Back</button>${wcard(w)}${stBox(S.w[k])}`}
+const okBox=k=>{const l=S.ok[k]||[],i=W.indexOf(WB[k]);return l.length?`<div class="st"><p><b>Answers you counted as right</b></p>${l.map((x,j)=>`<p>${x.t=='en'?'Meaning':'Dutch'}: <b>${esc(x.a)}</b> <button class="lk" onclick="okDel(W[${i}][3],${j});wDetail(W[${i}][3])">forget</button></p>`).join('')}<p class="mu" style="font-size:.85rem">These count as right from now on. Forget one if it turns out to be wrong.</p></div>`:''};
+function wDetail(k){const w=WB[k];$.innerHTML=`<button class="lk" onclick="wHome()">Back</button>${wcard(w)}${stBox(S.w[k])}${okBox(k)}`}
+// Your accepted answers: everything counted as right by hand, to check and to send on.
+function okText(){
+  const L=['Stap voor Stap: answers I counted as right',''];
+  Object.entries(S.ok).forEach(([k,l])=>{const w=WB[k];if(w)l.forEach(x=>L.push(x.t=='nl'?`"${w[1]}" in Dutch: ${x.a}   (the app expects: ${dn(w)})`:`"${dn(w)}" means: ${x.a}   (the app expects: ${w[1]})`))});
+  Object.entries(S.okx).forEach(([i,l])=>{const r=RS[i];if(r)l.forEach(a=>L.push(`Writing, "${r.en}": ${a}   (the app expects: ${r.nl})`))});
+  return L.join('\n');
+}
+function okHome(){
+  const n=okCount(),rows=[];
+  Object.entries(S.ok).forEach(([k,l])=>{const w=WB[k];if(w)l.forEach(x=>rows.push(`<div class="ll"><span>${x.t=='nl'?`<span class="mu">${esc(w[1])} →</span> <b>${esc(x.a)}</b>`:`<span class="mu">${esc(dn(w))} →</span> <b>${esc(x.a)}</b>`}<br><span class="mu" style="font-size:.85rem">the app expects: ${esc(x.t=='nl'?dn(w):w[1])}</span></span><button class="lk" onclick="wDetail(W[${W.indexOf(w)}][3])">open</button></div>`))});
+  Object.entries(S.okx).forEach(([i,l])=>{const r=RS[i];if(r)l.forEach((a,j)=>rows.push(`<div class="ll"><span><span class="mu">${esc(r.en)} →</span> <b>${esc(a)}</b><br><span class="mu" style="font-size:.85rem">the app expects: ${esc(r.nl)}</span></span><button class="lk" onclick="S.okx[${i}].splice(${j},1);if(!S.okx[${i}].length)delete S.okx[${i}];save();okHome()">forget</button></div>`))});
+  $.innerHTML=`<button class="lk" onclick="home()">All sections</button>${H('scroll','Your accepted answers','goedgekeurd')}
+  <p class="mu">Answers you counted as right with “… was right too”. They count as right from now on, on this device. Send the list on, so good ones can be added to the app for everyone.</p>
+  ${n?rows.join(''):'<p>None yet. When the app marks a right answer wrong, press “… was right too” and it shows up here.</p>'}
+  ${n?`<div class="btns">${navigator.share?'<button class="p" onclick="okShare()">Share the list</button>':''}<button class="${navigator.share?'':'p'}" onclick="okCopy()">Copy the list</button></div><div id="okm"></div>`:''}`;
+  scrollTo(0,0);
+}
+function okShare(){navigator.share({title:'Stap voor Stap answers',text:okText()}).catch(()=>{})}
+async function okCopy(){
+  const t=okText(),m=document.getElementById('okm');
+  try{await navigator.clipboard.writeText(t);toast('Copied. Paste it into a message.')}
+  catch(e){if(m)m.innerHTML=`<p class="mu">Select the text below and copy it:</p><textarea class="in" rows="8" style="width:100%" readonly>${esc(t)}</textarea>`}
+}
 function wStart(){
   const b=WL.map(w=>w[3]);WL=null;b.forEach(k=>S.w[k]={b:0,d:Date.now(),f:Date.now()});save();ws_fresh=b;
   wRun([...sh(b).map(k=>({k,t:'rec'})),...sh(b).map(k=>({k,t:'rcl'}))],false);
@@ -132,15 +156,25 @@ function wAsk(){
   if(t.startsWith('lis'))setTimeout(()=>say(w[0]),150);
   const inp=document.getElementById('in');if(inp)inp.focus();else $.focus({preventScroll:true});
 }
+// Answers she counted as right herself ("… was right too") are remembered per word (S.ok) and per Writing
+// sentence (S.okx) and accepted from then on. They stay on this device; "Your accepted answers" lists them with
+// Share and Copy, so good ones can be added to the word list for everyone.
+const okN=(t,a)=>t=='en'?enNorm(a):deacc(norm(a));
+const okHas=(k,t,a)=>!!a&&(S.ok[k]||[]).some(x=>x.t==t&&okN(t,x.a)==okN(t,a));
+function okAdd(k,t,a){if(!a||okHas(k,t,a))return;(S.ok[k]=S.ok[k]||[]).push({t,a,d:Date.now()});save()}
+function okDel(k,i){const l=S.ok[k];if(!l)return;l.splice(i,1);if(!l.length)delete S.ok[k];save()}
+const okCount=()=>Object.values(S.ok).reduce((n,l)=>n+l.length,0)+Object.values(S.okx).reduce((n,l)=>n+l.length,0);
+const OKPREV='You counted this as right before.';
 function wSubmit(){
-  if(!wc||wc.done)return;const inp=document.getElementById('in'),v=inp.value.trim(),g=v?gradeNL(v,wc.w):{ok:0};
+  if(!wc||wc.done)return;const inp=document.getElementById('in'),v=inp.value.trim();let g=v?gradeNL(v,wc.w):{ok:0};
+  if(!g.ok&&!g.art&&okHas(wc.w[3],'nl',v))g={ok:1,note:OKPREV};
   inp.disabled=true;document.getElementById('ck').disabled=true;wc.art=!!g.art;wDone(!!g.ok,g.note,v);
 }
 // A typed meaning: any listed meaning counts, also that of another word spelled the same (zijn: his, to be).
 function wMean(){
   if(!wc||wc.done)return;const inp=document.getElementById('in'),v=inp.value.trim(),w=wc.w;
-  const ok=W.some(x=>(x==w||x[0]==w[0])&&gradeEN(v,x[1]));
-  inp.disabled=true;document.getElementById('ck').disabled=true;wDone(ok,'',v);
+  const ok=W.some(x=>(x==w||x[0]==w[0])&&gradeEN(v,x[1])),prev=!ok&&okHas(w[3],'en',v);
+  inp.disabled=true;document.getElementById('ck').disabled=true;wDone(ok||prev,prev?OKPREV:'',v);
 }
 function wPick(i){
   if(!wc||wc.done)return;const {w,o}=wc;
@@ -181,7 +215,8 @@ function wOverrule(){
   const k=wc.w[3];if(wc.ok||wc.overruled)return;
   if(wc.reset&&wc.snap){S.w[k]={...wc.snap};wc.reset=0}
   const c=S.w[k];
-  wc.overruled=1;wc.ok=true;wc.typed='';wc.note='Counted as right.';ws.ok++;
+  okAdd(k,wc.t=='rcl'?'nl':'en',wc.typed);
+  wc.overruled=1;wc.ok=true;wc.typed='';wc.note='Counted as right, and remembered: next time this answer counts straight away.';ws.ok++;
   if(c&&wc.snap){Object.keys(c).forEach(x=>delete c[x]);Object.assign(c,wc.snap)}
   if(!wc.missBefore)ws.miss.delete(k);
   const i=WQ.findIndex(x=>x.k===k&&x.w);if(i>=0)WQ.splice(i,1);

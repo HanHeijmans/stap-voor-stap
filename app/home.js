@@ -21,6 +21,7 @@ function home(){
   <p class="mu" style="font-size:.9rem;max-width:62em">Each day, clear what is due first, then take at most one new lesson. Ten minutes every day beats an hour once a week.</p>
   <label class="ck"><input type="checkbox" ${S.au!==0?'checked':''} onchange="S.au=this.checked?1:0;save()"> Say the Dutch out loud after each answer${NLV?'':' (needs a browser with a Dutch voice, such as Chrome or Edge)'}</label>
   <h2>Your progress</h2><p class="mu" id="sync">${syncText()}</p>
+  ${okCount()?`<p><button class="lk" onclick="okHome()">Answers you counted as right: ${okCount()} · send them on</button></p>`:''}
   <div class="bk"><button onclick="exportState()">Save backup file</button><label class="bkl">Load backup file<input type="file" accept=".json,application/json" onchange="importState(this.files[0]);this.value=''"></label></div><div id="bkm"></div>`;
 }
 
@@ -43,7 +44,7 @@ document.addEventListener('keydown',e=>{
   if(b&&!b.disabled){e.preventDefault();b.click()}
 });
 const focusMain=()=>{const b=document.querySelector('.btns .p, .nx.p');if(b)b.focus({preventScroll:true})};
-['wHome','wLesson','uHome','uPage','gHome','gPage','rHome','xHome','plIntro','plFin','wFin','cjFin','sbFin','rFin','grFin','xFin','weekHome','cjList']
+['wHome','wLesson','uHome','uPage','gHome','gPage','rHome','xHome','plIntro','plFin','wFin','cjFin','sbFin','rFin','grFin','xFin','weekHome','cjList','okHome']
   .forEach(f=>{const o=window[f];window[f]=function(){const r=o.apply(this,arguments);focusMain();return r}});
 // End-of-round screens get a small burst of confetti.
 ['plFin','wFin','cjFin','sbFin','rFin','grFin','xFin']

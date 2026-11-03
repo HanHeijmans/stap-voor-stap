@@ -67,9 +67,11 @@ function plType(){
   if(PL.done||inp.disabled)return;if(!v)return plPick(false);
   if(nl?plNL(v,w):plEN(v,w))return plPick(true);
   inp.disabled=true;document.getElementById('ck').disabled=true;
-  document.getElementById('plfb').innerHTML=`<div class="fb b">Not what the app expected: <b>${esc(nl?dn(w):w[1])}</b>. If yours means the same, it counts. <button class="lk" onclick="plPick(true)">My answer was right too</button></div><button class="nx p" id="nx" onclick="plPick(false)">Next</button>`;
+  document.getElementById('plfb').innerHTML=`<div class="fb b">Not what the app expected: <b>${esc(nl?dn(w):w[1])}</b>. If yours means the same, it counts. <button class="lk" onclick="plOver()">My answer was right too</button></div><button class="nx p" id="nx" onclick="plPick(false)">Next</button>`;
   document.getElementById('nx').focus();
 }
+// Counted as right by hand: remembered like in Words, so it can be sent on with the other accepted answers.
+function plOver(){const w=PL.items[PL.i],v=document.getElementById('in').value.trim();okAdd(w[3],PL.i%2?'nl':'en',v);plPick(true)}
 function plPick(ok){
   if(PL.done)return;PL.done=1;const w=PL.items[PL.i];
   PL.res[w[3]]=ok;if(ok)PL.ok++;PL.i++;

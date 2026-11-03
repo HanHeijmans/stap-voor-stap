@@ -80,6 +80,7 @@ function xHint(){
 function xSubmit(){
   if(!xc||xc.done)return;const inp=document.getElementById('xin');
   xc.res=xGrade(inp.value,xc.l);xc.res.typed=inp.value.trim();
+  if(!xc.res.ok&&(S.okx[xc.i]||[]).some(a=>xWords(a).join(' ')==xWords(inp.value).join(' ')))xc.res={...xc.res,ok:1,prev:1};
   inp.disabled=true;document.getElementById('xck').disabled=true;const h=document.getElementById('xh');if(h)h.remove();
   xDone();
 }
@@ -88,7 +89,7 @@ function xDone(){
   if(!xc.over){xc.b0=(S.wr[k]||{b:0}).b;xc.snap=S.wr[k]?{...S.wr[k]}:null;xc.missBefore=xs.miss.has(k);xs.n++;if(ok)xs.ok++;XQ.shift();if(!ok)XQ.splice(Math.min(2,XQ.length),0,i);gMark(S.wr,k,ok,xs,xc.hint||xs.miss.has(k))}
   const mk=res.marks.map(m=>`<span class="${m.ok?'pk':'px'}" title="${m.ok?'right':'expected '+esc(m.t)}"><b>${esc(m.g||'·')}</b></span>`).join(' ');
   const notes=[...new Set(res.marks.filter(m=>m.note&&(!m.ok||ok)).map(m=>m.note))];
-  const why=ok?(xc.over?' Counted as right.':res.order?' Your word order differs from ours, which is fine here: the verb is still second.':'')+(notes.length?' '+notes.join(' '):'')
+  const why=ok?(xc.over?' Counted as right, and remembered: next time this sentence counts straight away.':res.prev?' '+OKPREV:res.order?' Your word order differs from ours, which is fine here: the verb is still second.':'')+(notes.length?' '+notes.join(' '):'')
     :res.words?' All the words are right, but the order is not one this checker knows. Remember: the verb comes second. If you are sure it is good Dutch, count it.'
     :res.extra?` You wrote ${Math.abs(res.extra)} word${Math.abs(res.extra)>1?'s':''} ${res.extra>0?'too many':'too few'}.`
     :notes.length?' '+notes.join(' '):'';
@@ -105,6 +106,7 @@ function xOverrule(){
   if(xc.snap)S.wr[k]=xc.snap;else delete S.wr[k];
   if(!xc.missBefore)xs.miss.delete(k);
   const j=XQ.indexOf(xc.i);if(j>=0)XQ.splice(j,1);
+  const ks=String(xc.i),a=xc.res.typed;if(a&&!(S.okx[ks]||[]).some(x=>xWords(x).join(' ')==xWords(a).join(' ')))(S.okx[ks]=S.okx[ks]||[]).push(a);
   xs.ok++;xc.res.ok=1;xc.res.order=1;xc.over=1;
   const c=S.wr[k]=S.wr[k]||{b:0,d:Date.now()};if(xc.hint||xs.miss.has(k))c.d=Math.max(c.d,Date.now()+DAY);else if(!xs.pro.has(k)){xs.pro.add(k);srsUp(c)}save();xDone();
 }
